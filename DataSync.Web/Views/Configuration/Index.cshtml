@@ -1,0 +1,93 @@
+@using NonFactors.Mvc.Grid
+@model IQueryable<DataSync.Core.Models.ExportConfiguration>
+
+@{
+    ViewData["Title"] = "Configuration";
+}
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-gear"></i> Export Configurations</h5>
+        <div>
+            <a asp-action="Create" class="btn btn-sm btn-success"><i class="bi bi-plus-lg"></i> Create New</a>
+            <a asp-action="BulkImport" class="btn btn-sm btn-info text-white"><i class="bi bi-upload"></i> Bulk Import</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-action="DeleteMultiple" id="deleteForm">
+            @(Html
+                .Grid(Model)
+                .Build(columns =>
+                {
+                    columns.Add(model => "").Titled("#").Css("row-number-col");
+                    columns.Add(model => model.Id).RenderedAs(model => Html.Raw($"<input type='checkbox' name='ids' value='{model.Id}' class='selectItem' />")).Encoded(false).Titled("").Css("text-center").Filterable(false).Sortable(false);
+                    columns.Add(model => model.AppId).Titled("App ID");
+                    columns.Add(model => model.AppName).Titled("App Name");
+                    columns.Add(model => model.DbServerIP).Titled("Server");
+                    columns.Add(model => model.DbName).Titled("DB");
+                    columns.Add(model => model.TableName).Titled("Table");
+                    columns.Add(model => model.DateColumn).Titled("Date Col");
+                    columns.Add(model => model.Enabled).Titled("Enabled").RenderedAs(model => model.Enabled ? "<span class='badge bg-success'>Yes</span>" : "<span class='badge bg-secondary'>No</span>").Encoded(false);
+                    columns.Add(model => Html.Raw($"<a href='{Url.Action("Edit", "Configuration", new { appId = model.AppId })}' class='btn btn-sm btn-primary'>Edit</a> <button type='button' class='btn btn-sm btn-danger' onclick='confirmDelete({model.Id})'>Delete</button>")).Titled("Actions").Encoded(false);
+                })
+                .Using(GridFilterMode.Header)
+                .Empty("No data found")
+                .Filterable()
+                .Sortable()
+                .Pageable(pager =>
+                {
+                    pager.PageSizes = new Dictionary<Int32, String> { { 0, "All" }, { 10, "10" }, { 20, "20" }, { 50, "50" }, { 100, "100" }, { 500, "500" }, { 1000, "1000" } };
+                    pager.ShowPageSizes = true;
+                    pager.RowsPerPage = 20;
+                })
+            )
+            <button type="submit" class="btn btn-danger mt-3" onclick="return confirm('Delete selected items?');">Delete Selected</button>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this configuration?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="btnConfirmDelete" href="#" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var headers = document.querySelectorAll('.mvc-grid-headers th');
+            if(headers.length > 1) {
+                headers[1].innerHTML = '<input type="checkbox" id="selectAll" />';
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id == 'selectAll') {
+                var checkboxes = document.getElementsByClassName('selectItem');
+                for(var i=0; i<checkboxes.length; i++) {
+                    checkboxes[i].checked = e.target.checked;
+                }
+            }
+        });
+
+        function confirmDelete(id) {
+            var deleteUrl = '@Url.Action("Delete", "Configuration")/' + id;
+            document.getElementById('btnConfirmDelete').setAttribute('href', deleteUrl);
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+    </script>
+}

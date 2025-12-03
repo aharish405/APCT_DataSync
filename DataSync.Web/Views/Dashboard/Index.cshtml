@@ -1,0 +1,39 @@
+@using NonFactors.Mvc.Grid
+@model IQueryable<DataSync.Core.Models.ExportLog>
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-speedometer2"></i> Export Logs</h5>
+    </div>
+    <div class="card-body">
+        @(Html
+            .Grid(Model)
+            .Build(columns =>
+            {
+                columns.Add(model => "").Titled("#").Css("row-number-col");
+                columns.Add(model => model.AppId).Titled("App ID");
+                columns.Add(model => model.TableName).Titled("Table");
+                columns.Add(model => model.RequestTimestamp).Titled("Request Time").Formatted("{0:g}").Sortable(true);
+                columns.Add(model => model.FromDate).Titled("From Date").Formatted("{0:d}");
+                columns.Add(model => model.ToDate).Titled("To Date").Formatted("{0:d}");
+                columns.Add(model => model.Status).Titled("Status").RenderedAs(model => model.Status == "Success" ? "<span class='badge bg-success'>Success</span>" : "<span class='badge bg-danger'>Failed</span>").Encoded(false);
+                columns.Add(model => model.RecordsCount).Titled("Records");
+                columns.Add(model => model.ErrorMessage).Titled("Error");
+            })
+            .Using(GridFilterMode.Header)
+            .Empty("No logs found")
+            .Filterable()
+            .Sortable()
+            .Pageable(pager =>
+            {
+                pager.PageSizes = new Dictionary<Int32, String> { { 0, "All" }, { 10, "10" }, { 20, "20" }, { 50, "50" }, { 100, "100" }, { 500, "500" }, { 1000, "1000" } };
+                pager.ShowPageSizes = true;
+                pager.RowsPerPage = 20;
+            })
+        )
+    </div>
+</div>

@@ -1,0 +1,40 @@
+@using NonFactors.Mvc.Grid
+@model IQueryable<DataSync.Core.Models.ApiClient>
+
+@{
+    ViewData["Title"] = "API Clients";
+}
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-shield-lock"></i> API Clients</h5>
+        <div>
+            <a asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Create New Client</a>
+            <a asp-action="Tokens" class="btn btn-sm btn-secondary"><i class="bi bi-key"></i> Manage Tokens</a>
+        </div>
+    </div>
+    <div class="card-body">
+        @(Html
+            .Grid(Model)
+            .Build(columns =>
+            {
+                columns.Add(model => "").Titled("#").Css("row-number-col");
+                columns.Add(model => model.ClientName).Titled("Client Name");
+                columns.Add(model => model.ClientId).Titled("Client ID");
+                columns.Add(model => model.Created).Titled("Created").Formatted("{0:g}");
+                columns.Add(model => model.IsActive).Titled("Status").RenderedAs(model => model.IsActive ? "<span class='badge bg-success'>Active</span>" : "<span class='badge bg-secondary'>Inactive</span>").Encoded(false);
+                columns.Add(model => model.IsActive ? Html.Raw($"<form action='{Url.Action("Delete", "Security", new { id = model.Id })}' method='post' style='display:inline;' onsubmit='return confirm(\"Are you sure you want to revoke this client?\");'><button type='submit' class='btn btn-danger btn-sm'>Revoke</button></form>") : Html.Raw("")).Titled("Actions").Encoded(false);
+            })
+            .Using(GridFilterMode.Header)
+            .Empty("No clients found")
+            .Filterable()
+            .Sortable()
+            .Pageable(pager =>
+            {
+                pager.PageSizes = new Dictionary<Int32, String> { { 0, "All" }, { 10, "10" }, { 20, "20" }, { 50, "50" }, { 100, "100" }, { 500, "500" }, { 1000, "1000" } };
+                pager.ShowPageSizes = true;
+                pager.RowsPerPage = 20;
+            })
+        )
+    </div>
+</div>

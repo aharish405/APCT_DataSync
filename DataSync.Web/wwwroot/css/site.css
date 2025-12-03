@@ -1,0 +1,14 @@
+/* Grid Row Numbers */
+.mvc-grid table {
+    counter-reset: row-num;
+}
+
+.mvc-grid tbody tr {
+    counter-increment: row-num;
+}
+
+.mvc-grid tbody tr td.row-number-col::before {
+    content: counter(row-num);
+    font-weight: bold;
+    color: #6c757d;
+}
