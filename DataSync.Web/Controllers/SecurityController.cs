@@ -1,10 +1,13 @@
+using DataSync.Core.Interfaces;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Threading.Tasks;
-using DataSync.Core.Interfaces;
-using Microsoft.AspNetCore.Mvc;
 
 namespace DataSync.Web.Controllers
 {
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     public class SecurityController : Controller
     {
         private readonly IAuthService _authService;

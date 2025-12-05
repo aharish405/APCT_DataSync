@@ -5,11 +5,15 @@ using System.Threading.Tasks;
 using DataSync.Core.Interfaces;
 using DataSync.Core.Models;
 using DataSync.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DataSync.Web.Controllers
 {
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     public class ConfigurationController : Controller
     {
         private readonly IConfigurationRepository _configRepo;
@@ -135,7 +139,7 @@ namespace DataSync.Web.Controllers
         }
 
         [HttpGet("~/api/getexporttables")]
-        [Microsoft.AspNetCore.Authorization.Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetExportTables()
         {
             var tables = await _configRepo.GetAllExportTablesAsync();
