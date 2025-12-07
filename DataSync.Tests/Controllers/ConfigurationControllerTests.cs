@@ -16,19 +16,21 @@ namespace DataSync.Tests.Controllers
     public class ConfigurationControllerTests
     {
         private readonly Mock<IConfigurationRepository> _mockRepo;
+        private readonly Mock<IDataExportRepository> _mockDataExportRepo;
         private readonly DataSyncDbContext _dbContext;
         private readonly ConfigurationController _controller;
 
         public ConfigurationControllerTests()
         {
             _mockRepo = new Mock<IConfigurationRepository>();
+            _mockDataExportRepo = new Mock<IDataExportRepository>();
             
             var options = new DbContextOptionsBuilder<DataSyncDbContext>()
                 .UseInMemoryDatabase(databaseName: "TestDb_ConfigController")
                 .Options;
             _dbContext = new DataSyncDbContext(options);
             
-            _controller = new ConfigurationController(_mockRepo.Object, _dbContext);
+            _controller = new ConfigurationController(_mockRepo.Object, _dbContext, _mockDataExportRepo.Object);
         }
 
         [Fact]
@@ -53,7 +55,19 @@ namespace DataSync.Tests.Controllers
         public async Task Create_Post_ShouldRedirect_WhenModelIsValid()
         {
             // Arrange
-            var config = new ExportConfiguration { AppName = "NewApp", AppId = "new-app" };
+            var config = new ExportConfiguration 
+            { 
+                AppName = "NewApp", 
+                AppId = "new-app",
+                DbServerIP = "192.168.1.1",
+                DbName = "TestDB",
+                TableName = "TestTable",
+                DateColumn = "CreatedDate",
+                Enabled = true
+            };
+            
+            _mockDataExportRepo.Setup(r => r.ValidateQueryAsync(It.IsAny<ExportConfiguration>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync((true, "Valid", 10));
 
             // Act
             var result = await _controller.Create(config);
@@ -100,7 +114,20 @@ namespace DataSync.Tests.Controllers
         public async Task Edit_Post_ShouldRedirect_WhenModelIsValid()
         {
             // Arrange
-            var config = new ExportConfiguration { Id = 1, AppName = "Updated" };
+            var config = new ExportConfiguration 
+            { 
+                Id = 1, 
+                AppName = "Updated",
+                AppId = "updated-app",
+                DbServerIP = "192.168.1.1",
+                DbName = "TestDB",
+                TableName = "TestTable",
+                DateColumn = "CreatedDate",
+                Enabled = true
+            };
+            
+            _mockDataExportRepo.Setup(r => r.ValidateQueryAsync(It.IsAny<ExportConfiguration>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync((true, "Valid", 10));
 
             // Act
             var result = await _controller.Edit(config);
