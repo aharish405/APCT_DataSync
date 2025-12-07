@@ -18,11 +18,13 @@ namespace DataSync.Web.Controllers
     {
         private readonly IConfigurationRepository _configRepo;
         private readonly DataSyncDbContext _context;
+        private readonly IDataExportRepository _dataExportRepo;
 
-        public ConfigurationController(IConfigurationRepository configRepo, DataSyncDbContext context)
+        public ConfigurationController(IConfigurationRepository configRepo, DataSyncDbContext context, IDataExportRepository dataExportRepo)
         {
             _configRepo = configRepo;
             _context = context;
+            _dataExportRepo = dataExportRepo;
         }
 
         public IActionResult Index()
@@ -38,17 +40,36 @@ namespace DataSync.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(ExportConfiguration config)
         {
+            if (string.IsNullOrWhiteSpace(config.TableName))
+            {
+               ModelState.AddModelError("TableName", "Table Name is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.CustomQuery) && string.IsNullOrWhiteSpace(config.DateColumn))
+            {
+                ModelState.AddModelError("DateColumn", "Date Column is required when Custom Query is not provided.");
+            }
+
             if (ModelState.IsValid)
             {
-                await _configRepo.AddConfigurationAsync(config);
-                return RedirectToAction(nameof(Index));
+                // Strict Backend Validation
+                var validationResult = await _dataExportRepo.ValidateQueryAsync(config);
+                if (!validationResult.Success)
+                {
+                    ModelState.AddModelError("", $"Configuration Failed Validation: {validationResult.Message}");
+                }
+                else
+                {
+                    await _configRepo.AddConfigurationAsync(config);
+                    return RedirectToAction(nameof(Index));
+                }
             }
             return View(config);
         }
 
-        public async Task<IActionResult> Edit(string appId)
+        public async Task<IActionResult> Edit(int id)
         {
-            var config = await _configRepo.GetConfigurationAsync(appId);
+            var config = await _configRepo.GetConfigurationByIdAsync(id);
             if (config == null)
             {
                 return NotFound();
@@ -59,10 +80,29 @@ namespace DataSync.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(ExportConfiguration config)
         {
+            if (string.IsNullOrWhiteSpace(config.TableName))
+            {
+               ModelState.AddModelError("TableName", "Table Name is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.CustomQuery) && string.IsNullOrWhiteSpace(config.DateColumn))
+            {
+                 ModelState.AddModelError("DateColumn", "Date Column is required when Custom Query is not provided.");
+            }
+
             if (ModelState.IsValid)
             {
-                await _configRepo.UpdateConfigurationAsync(config);
-                return RedirectToAction(nameof(Index));
+                // Strict Backend Validation
+                var validationResult = await _dataExportRepo.ValidateQueryAsync(config);
+                if (!validationResult.Success)
+                {
+                    ModelState.AddModelError("", $"Configuration Failed Validation: {validationResult.Message}");
+                }
+                else
+                {
+                    await _configRepo.UpdateConfigurationAsync(config);
+                    return RedirectToAction(nameof(Index));
+                }
             }
             return View(config);
         }
@@ -105,8 +145,10 @@ namespace DataSync.Web.Controllers
                 while (!reader.EndOfStream)
                 {
                     var line = await reader.ReadLineAsync();
-                    var values = line.Split(',');
-                    if (values.Length >= 7)
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    var values = ParseCsvLine(line);
+                    if (values.Count >= 8)
                     {
                         configs.Add(new ExportConfiguration
                         {
@@ -116,7 +158,8 @@ namespace DataSync.Web.Controllers
                             DbName = values[3].Trim(),
                             TableName = values[4].Trim(),
                             DateColumn = values[5].Trim(),
-                            Enabled = bool.Parse(values[6].Trim())
+                            CustomQuery = values[6].Trim(),
+                            Enabled = bool.Parse(values[7].Trim())
                         });
                     }
                 }
@@ -131,11 +174,21 @@ namespace DataSync.Web.Controllers
         }
         public IActionResult DownloadSampleCsv()
         {
-            var csv = "AppId,AppName,DbServerIP,DbName,TableName,DateColumn,Enabled\n" +
-                      "app-001,Sales App,192.168.1.10,SalesDb,Orders,OrderDate,true\n" +
-                      "app-002,Inventory App,192.168.1.11,InventoryDb,Stock,LastUpdated,true";
+            var csv = "AppId,AppName,DbServerIP,DbName,TableName,DateColumn,CustomQuery,Enabled\n" +
+                      "app-001,Sales App,192.168.1.10,SalesDb,Orders,OrderDate,,true\n" +
+                      "app-002,Inventory App,192.168.1.11,InventoryDb,Stock,LastUpdated,,true\n" +
+                      "app-custom,Complex Report,192.168.1.12,HrDb,Employees,,\"SELECT * FROM Employees WHERE JoinDate BETWEEN @FromDate AND @ToDate\",true";
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
             return File(bytes, "text/csv", "sample_configurations.csv");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ValidateQuery([FromBody] ValidationRequest request)
+        {
+            if (request == null) return BadRequest("Invalid configuration.");
+
+            var result = await _dataExportRepo.ValidateQueryAsync(request, request.TestFromDate, request.TestToDate);
+            return Ok(new { success = result.Success, message = result.Message, count = result.Count });
         }
 
         [HttpGet("~/api/getexporttables")]
@@ -144,6 +197,47 @@ namespace DataSync.Web.Controllers
         {
             var tables = await _configRepo.GetAllExportTablesAsync();
             return Ok(tables);
+        }
+        private List<string> ParseCsvLine(string line)
+        {
+            var result = new List<string>();
+            var current = "";
+            bool inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+
+                if (c == '"')
+                {
+                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        current += '"';
+                        i++;
+                    }
+                    else
+                    {
+                        inQuotes = !inQuotes;
+                    }
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    result.Add(current);
+                    current = "";
+                }
+                else
+                {
+                    current += c;
+                }
+            }
+
+            result.Add(current);
+            return result;
+        }
+        public class ValidationRequest : ExportConfiguration
+        {
+            public DateTime? TestFromDate { get; set; }
+            public DateTime? TestToDate { get; set; }
         }
     }
 }

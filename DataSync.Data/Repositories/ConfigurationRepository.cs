@@ -26,6 +26,15 @@ namespace DataSync.Data.Repositories
             }
         }
 
+        public async Task<ExportConfiguration> GetConfigurationByIdAsync(int id)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var sql = "SELECT * FROM DataSync_ExportConfigurations WHERE Id = @Id";
+                return await connection.QueryFirstOrDefaultAsync<ExportConfiguration>(sql, new { Id = id });
+            }
+        }
+
         public async Task<ExportConfiguration> GetConfigurationAsync(string appName, string dbName, string tableName)
         {
             using (var connection = new SqlConnection(_connectionString))
@@ -81,8 +90,8 @@ namespace DataSync.Data.Repositories
             using (var connection = new SqlConnection(_connectionString))
             {
                 var sql = @"
-                    INSERT INTO DataSync_ExportConfigurations (AppId, AppName, DbServerIP, DbName, TableName, DateColumn, Enabled)
-                    VALUES (@AppId, @AppName, @DbServerIP, @DbName, @TableName, @DateColumn, @Enabled);
+                    INSERT INTO DataSync_ExportConfigurations (AppId, AppName, DbServerIP, DbName, TableName, DateColumn, CustomQuery, Enabled)
+                    VALUES (@AppId, @AppName, @DbServerIP, @DbName, @TableName, @DateColumn, @CustomQuery, @Enabled);
                     SELECT CAST(SCOPE_IDENTITY() as int)";
                 return await connection.ExecuteScalarAsync<int>(sql, config);
             }
@@ -95,7 +104,8 @@ namespace DataSync.Data.Repositories
                 var sql = @"
                     UPDATE DataSync_ExportConfigurations 
                     SET AppId = @AppId, AppName = @AppName, DbServerIP = @DbServerIP, 
-                        DbName = @DbName, TableName = @TableName, DateColumn = @DateColumn, Enabled = @Enabled
+                        DbName = @DbName, TableName = @TableName, DateColumn = @DateColumn, 
+                        CustomQuery = @CustomQuery, Enabled = @Enabled
                     WHERE Id = @Id";
                 await connection.ExecuteAsync(sql, config);
             }
@@ -127,8 +137,8 @@ namespace DataSync.Data.Repositories
                 using (var transaction = connection.BeginTransaction())
                 {
                     var sql = @"
-                        INSERT INTO DataSync_ExportConfigurations (AppId, AppName, DbServerIP, DbName, TableName, DateColumn, Enabled)
-                        VALUES (@AppId, @AppName, @DbServerIP, @DbName, @TableName, @DateColumn, @Enabled)";
+                        INSERT INTO DataSync_ExportConfigurations (AppId, AppName, DbServerIP, DbName, TableName, DateColumn, CustomQuery, Enabled)
+                        VALUES (@AppId, @AppName, @DbServerIP, @DbName, @TableName, @DateColumn, @CustomQuery, @Enabled)";
                     await connection.ExecuteAsync(sql, configs, transaction: transaction);
                     transaction.Commit();
                 }

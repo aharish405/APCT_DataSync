@@ -9,8 +9,18 @@ BEGIN
         DbName NVARCHAR(50) NOT NULL,
         TableName NVARCHAR(50) NOT NULL,
         DateColumn NVARCHAR(50) NOT NULL,
+        CustomQuery NVARCHAR(MAX) NULL,
         Enabled BIT NOT NULL
     );
+END
+
+-- Ensure column exists if table already exists (Migration support)
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'DataSync_ExportConfigurations')
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('DataSync_ExportConfigurations') AND name = 'CustomQuery')
+    BEGIN
+        ALTER TABLE DataSync_ExportConfigurations ADD CustomQuery NVARCHAR(MAX) NULL;
+    END
 END
 
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'DataSync_ExportLogs')

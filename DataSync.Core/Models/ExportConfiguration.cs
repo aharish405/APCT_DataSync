@@ -11,6 +11,7 @@ namespace DataSync.Core.Models
         public string DbName { get; set; }
         public string TableName { get; set; }
         public string DateColumn { get; set; }
+        public string CustomQuery { get; set; }
         public bool Enabled { get; set; }
     }
 }

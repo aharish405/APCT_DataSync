@@ -25,10 +25,10 @@
                     columns.Add(model => model.AppName).Titled("App Name");
                     columns.Add(model => model.DbServerIP).Titled("Server");
                     columns.Add(model => model.DbName).Titled("DB");
-                    columns.Add(model => model.TableName).Titled("Table");
+                    columns.Add(model => model.TableName).Titled("Table").RenderedAs(model => model.TableName + (!string.IsNullOrEmpty(model.CustomQuery) ? " <span class='badge bg-info text-dark rounded-pill ms-1'>Query</span>" : "")).Encoded(false);
                     columns.Add(model => model.DateColumn).Titled("Date Col");
                     columns.Add(model => model.Enabled).Titled("Enabled").RenderedAs(model => model.Enabled ? "<span class='badge bg-success'>Yes</span>" : "<span class='badge bg-secondary'>No</span>").Encoded(false);
-                    columns.Add(model => Html.Raw($"<a href='{Url.Action("Edit", "Configuration", new { appId = model.AppId })}' class='btn btn-sm btn-primary'>Edit</a> <button type='button' class='btn btn-sm btn-danger' onclick='confirmDelete({model.Id})'>Delete</button>")).Titled("Actions").Encoded(false);
+                    columns.Add(model => Html.Raw($"<a href='{Url.Action("Edit", "Configuration", new { id = model.Id })}' class='btn btn-sm btn-primary'>Edit</a> <button type='button' class='btn btn-sm btn-danger' onclick='confirmDelete({model.Id})'>Delete</button>")).Titled("Actions").Encoded(false);
                 })
                 .Using(GridFilterMode.Header)
                 .Empty("No data found")

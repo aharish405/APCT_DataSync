@@ -47,10 +47,58 @@
                                 <input asp-for="TableName" class="form-control" />
                                 <span asp-validation-for="TableName" class="text-danger"></span>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="DateColumn" class="form-label fw-bold"></label>
-                                <input asp-for="DateColumn" class="form-control" />
-                                <span asp-validation-for="DateColumn" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-check form-switch mb-3 p-3 bg-light border rounded">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" id="useCustomQuery" onchange="toggleQueryMode()" style="float: none;" />
+                            <label class="form-check-label fw-bold" for="useCustomQuery">Advanced: Use Custom SQL Query</label>
+                        </div>
+
+                        <!-- Date Column (Standard Mode) -->
+                        <div id="dateColumnConfig">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="DateColumn" class="form-label fw-bold"></label>
+                                    <input asp-for="DateColumn" class="form-control" />
+                                    <span asp-validation-for="DateColumn" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Query Configuration -->
+                        <div id="customQueryConfig" style="display:none;">
+                            <div class="mb-3">
+                                <label asp-for="CustomQuery" class="form-label fw-bold"></label>
+                                <textarea asp-for="CustomQuery" class="form-control font-monospace" rows="5" placeholder="SELECT * FROM Table WHERE DateCol BETWEEN @@FromDate AND @@ToDate"></textarea>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-info-circle"></i> Write a valid SQL query. You <strong>MUST</strong> use <code>@@FromDate</code> and <code>@@ToDate</code> parameters for date filtering.
+                                </small>
+                                <span asp-validation-for="CustomQuery" class="text-danger"></span>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <small class="fw-bold text-muted">Test Parameters (Optional)</small>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label small">From Date</label>
+                                            <input type="date" id="TestFromDate" class="form-control form-control-sm" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">To Date</label>
+                                            <input type="date" id="TestToDate" class="form-control form-control-sm" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="validateQuery()">
+                                    <i class="bi bi-play-circle"></i> Validate & Test Query
+                                </button>
+                                <div id="validationResult" class="mt-2"></div>
                             </div>
                         </div>
 
@@ -74,4 +122,63 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function toggleQueryMode() {
+            var isCustom = document.getElementById('useCustomQuery').checked;
+            document.getElementById('dateColumnConfig').style.display = isCustom ? 'none' : 'block';
+            document.getElementById('customQueryConfig').style.display = isCustom ? 'block' : 'none';
+        }
+
+        function validateQuery() {
+            var btn = event.target;
+            var originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Validating...';
+            btn.disabled = true;
+
+            var data = {
+                DbServerIP: document.getElementById('DbServerIP').value,
+                DbName: document.getElementById('DbName').value,
+                TableName: document.getElementById('TableName').value,
+                DateColumn: document.getElementById('DateColumn').value,
+                CustomQuery: document.getElementById('CustomQuery').value,
+                TestFromDate: document.getElementById('TestFromDate').value || null,
+                TestToDate: document.getElementById('TestToDate').value || null
+            };
+
+            fetch('@Url.Action("ValidateQuery", "Configuration")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                var resultDiv = document.getElementById('validationResult');
+                if (result.success) {
+                    var fromDate = document.getElementById('TestFromDate').value;
+                    var toDate = document.getElementById('TestToDate').value;
+                    var rangeText = (fromDate && toDate) ? `(${fromDate} to ${toDate})` : "(Last 30 days)";
+                    resultDiv.innerHTML = `<div class="alert alert-success"><i class="bi bi-check-circle"></i> ${result.message} <br/><strong>Records found ${rangeText}:</strong> ${result.count}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${result.message}</div>`;
+                }
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            })
+            .catch(error => {
+                document.getElementById('validationResult').innerHTML = `<div class="alert alert-danger">An error occurred during validation.</div>`;
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+
+        // Clear Custom Query if toggle is off before submit
+        document.querySelector('form').addEventListener('submit', function (e) {
+            var useCustomQuery = document.getElementById('useCustomQuery').checked;
+            if (!useCustomQuery) {
+                document.getElementById('CustomQuery').value = '';
+            }
+        });
+    </script>
 }
