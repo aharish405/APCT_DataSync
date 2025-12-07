@@ -5,6 +5,14 @@ DataSync is a .NET 8.0 web application designed to export data from various SQL 
 
 ## Setup Instructions
 
+### Key Features
+*   **Dynamic Data Export**: Export data from any configured SQL Server table.
+*   **Custom SQL Queries**: Support for complex ad-hoc queries with joins and filters.
+*   **Security Guardrails**: Built-in protection against destructive SQL commands (DELETE, DROP, etc.).
+*   **Strict Validation**: Pre-save validation to ensure query correctness and schema integrity.
+*   **Secure Authentication**: OAuth 2.0 Client Credentials flow for API access.
+*   **Management UI**: Web interface for configuration, bulk imports, and security management.
+
 ### Prerequisites
 *   .NET 8.0 SDK
 *   SQL Server
@@ -119,3 +127,31 @@ sequenceDiagram
     *   If found, it uses the specific SQL credentials.
     *   If not found, it falls back to Windows Authentication.
 5.  **Data Retrieval:** The query is executed against the source database, and the results are returned to the client.
+
+---
+
+## Advanced Configuration
+
+### Custom SQL Queries
+Users can define custom SQL queries instead of selecting a simple table. This allows for:
+*   Joins across multiple tables.
+*   Data transformation and filtering at the source.
+*   Specific column selection.
+
+**Usage:**
+1.  Toggle "Advanced: Use Custom SQL Query" in the Create/Edit screen.
+2.  Enter your valid `SELECT` statement.
+3.  **Note:** The query must not contain semicolons `;` or destructive keywords.
+
+### Security Guardrails
+The application enforces strict security checks on custom queries:
+*   **Read-Only Strictness**: Queries must start with `SELECT` or `WITH`.
+*   **Block-list**: Destructive commands like `DELETE`, `UPDATE`, `DROP`, `TRUNCATE`, `ALTER`, `GRANT`, etc., are strictly forbidden.
+*   **No Chaining**: Multiple statements (chained with `;`) are blocked.
+
+### Query Validation
+The system includes robust validation tools:
+*   **Test & Validate**: Before saving, users can test their query against the database.
+*   **Custom Test Dates**: Users can specify custom `From` and `To` dates to verify data retrieval for specific periods.
+*   **Strict Save**: The system prevents saving any configuration that fails validation (e.g., query syntax error, missing table).
+
