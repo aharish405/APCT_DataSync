@@ -62,6 +62,13 @@ builder.Services.AddScoped<IAuthService>(provider => new AuthService(secretKey, 
 builder.Services.AddScoped<IAuthRepository>(provider => new AuthRepository(connectionString));
 builder.Services.AddScoped<IExportService, ExportService>();
 
+// Data Copy Module Services
+builder.Services.AddScoped<IDataCopyConfigRepository>(provider => new DataCopyConfigRepository(connectionString));
+builder.Services.AddScoped<IDataCopyJobRepository>(provider => new DataCopyJobRepository(connectionString));
+builder.Services.AddScoped<IDataCopyExecutionRepository, DataCopyExecutionRepository>();
+builder.Services.AddScoped<DataSync.Data.Helpers.ConnectionStringHelper>();
+builder.Services.AddScoped<IDataCopyService, DataCopyService>();
+
 // Auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

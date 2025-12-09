@@ -1,0 +1,269 @@
+@model DataSync.Core.Models.DataCopy.DataCopyConfiguration
+@{
+    ViewData["Title"] = "Edit Data Copy Configuration";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0"><i class="bi bi-pencil"></i> Edit Data Copy Configuration</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post" id="editForm">
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="CreatedDate" />
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                        
+                        <!-- Basic Configuration -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfigName" class="form-label fw-bold"></label>
+                                <input asp-for="ConfigName" class="form-control" required />
+                                <span asp-validation-for="ConfigName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label asp-for="BatchSize" class="form-label fw-bold"></label>
+                                <input asp-for="BatchSize" class="form-control" type="number" min="1" max="10000" required />
+                                <span asp-validation-for="BatchSize" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">Status</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input asp-for="Enabled" class="form-check-input" type="checkbox" />
+                                    <label asp-for="Enabled" class="form-check-label">Enabled</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Source Configuration Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="bi bi-database"></i> Source Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="SourceDbServerIP" class="form-label fw-bold"></label>
+                                        <input asp-for="SourceDbServerIP" class="form-control" required />
+                                        <span asp-validation-for="SourceDbServerIP" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="SourceDbName" class="form-label fw-bold"></label>
+                                        <input asp-for="SourceDbName" class="form-control" required />
+                                        <span asp-validation-for="SourceDbName" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="SourceTableName" class="form-label fw-bold"></label>
+                                        <input asp-for="SourceTableName" class="form-control" required />
+                                        <span asp-validation-for="SourceTableName" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label asp-for="SourceCustomQuery" class="form-label fw-bold"></label>
+                                        <textarea asp-for="SourceCustomQuery" class="form-control" rows="2"></textarea>
+                                        <small class="form-text text-muted">Optional: Add a WHERE clause to filter records. Do not include destructive commands.</small>
+                                        <span asp-validation-for="SourceCustomQuery" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Destination Configuration Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="bi bi-database-fill"></i> Destination Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="DestDbServerIP" class="form-label fw-bold"></label>
+                                        <input asp-for="DestDbServerIP" class="form-control" required />
+                                        <span asp-validation-for="DestDbServerIP" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="DestDbName" class="form-label fw-bold"></label>
+                                        <input asp-for="DestDbName" class="form-control" required />
+                                        <span asp-validation-for="DestDbName" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="DestTableName" class="form-label fw-bold"></label>
+                                        <input asp-for="DestTableName" class="form-control" required />
+                                        <span asp-validation-for="DestTableName" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Copy Options Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="bi bi-gear"></i> Copy Options</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch">
+                                    <input asp-for="TruncateBeforeCopy" class="form-check-input" type="checkbox" />
+                                    <label asp-for="TruncateBeforeCopy" class="form-check-label fw-bold">Truncate destination table before copy</label>
+                                    <small class="form-text text-muted d-block">Warning: This will delete all existing data in the destination table.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scheduling Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-secondary text-white">
+                                <h6 class="mb-0"><i class="bi bi-clock"></i> Scheduling (Optional)</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input asp-for="IsScheduled" class="form-check-input" type="checkbox" id="scheduleToggle" />
+                                            <label asp-for="IsScheduled" class="form-check-label fw-bold">Enable Scheduled Execution</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3" id="cronSection" style="display:@(Model.IsScheduled ? "block" : "none");">
+                                        <label asp-for="ScheduleCron" class="form-label fw-bold"></label>
+                                        <input asp-for="ScheduleCron" class="form-control" id="cronExpression" />
+                                        <small class="form-text text-muted">
+                                            Examples: "0 0 * * *" (daily at midnight), "0 */6 * * *" (every 6 hours)
+                                            <a href="https://crontab.guru" target="_blank" class="text-decoration-none">Cron Helper</a>
+                                        </small>
+                                    </div>
+                                </div>
+                                <div id="cronPreview" class="alert alert-info mt-2" style="display:none;">
+                                    <strong>Next 5 executions:</strong>
+                                    <ul id="cronPreviewList" class="mb-0 mt-2"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Validation Button -->
+                        <div class="card mb-3 border-primary">
+                            <div class="card-body">
+                                <button type="button" class="btn btn-outline-primary" id="validateBtn">
+                                    <i class="bi bi-check-circle"></i> Validate Configuration
+                                </button>
+                                <div id="validationResult" class="mt-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Update Configuration
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Schedule toggle
+        document.getElementById('scheduleToggle').addEventListener('change', function() {
+            document.getElementById('cronSection').style.display = this.checked ? 'block' : 'none';
+            if (!this.checked) {
+                document.getElementById('cronPreview').style.display = 'none';
+            }
+        });
+
+        // Cron expression preview
+        document.getElementById('cronExpression').addEventListener('input', function() {
+            const cronExpr = this.value.trim();
+            if (cronExpr) {
+                previewCronExpression(cronExpr);
+            } else {
+                document.getElementById('cronPreview').style.display = 'none';
+            }
+        });
+
+        // Preview on load if cron expression exists
+        window.addEventListener('load', function() {
+            const cronExpr = document.getElementById('cronExpression').value.trim();
+            if (cronExpr) {
+                previewCronExpression(cronExpr);
+            }
+        });
+
+        function previewCronExpression(cronExpr) {
+            fetch('/DataCopy/PreviewCron?expression=' + encodeURIComponent(cronExpr))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.nextExecutions && data.nextExecutions.length > 0) {
+                        const list = document.getElementById('cronPreviewList');
+                        list.innerHTML = '';
+                        data.nextExecutions.forEach(exec => {
+                            const li = document.createElement('li');
+                            li.textContent = new Date(exec).toLocaleString();
+                            list.appendChild(li);
+                        });
+                        document.getElementById('cronPreview').style.display = 'block';
+                        document.getElementById('cronPreview').className = 'alert alert-info mt-2';
+                    } else {
+                        document.getElementById('cronPreview').innerHTML = '<strong>Invalid cron expression:</strong> ' + (data.message || 'Please check the format');
+                        document.getElementById('cronPreview').style.display = 'block';
+                        document.getElementById('cronPreview').className = 'alert alert-warning mt-2';
+                    }
+                })
+                .catch(err => {
+                    console.error('Cron preview error:', err);
+                });
+        }
+
+        // Validate configuration
+        document.getElementById('validateBtn').addEventListener('click', function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Validating...';
+
+            const formData = {
+                Id: parseInt(document.querySelector('[name="Id"]').value),
+                ConfigName: document.querySelector('[name="ConfigName"]').value,
+                SourceDbServerIP: document.querySelector('[name="SourceDbServerIP"]').value,
+                SourceDbName: document.querySelector('[name="SourceDbName"]').value,
+                SourceTableName: document.querySelector('[name="SourceTableName"]').value,
+                SourceCustomQuery: document.querySelector('[name="SourceCustomQuery"]').value,
+                DestDbServerIP: document.querySelector('[name="DestDbServerIP"]').value,
+                DestDbName: document.querySelector('[name="DestDbName"]').value,
+                DestTableName: document.querySelector('[name="DestTableName"]').value,
+                BatchSize: parseInt(document.querySelector('[name="BatchSize"]').value),
+                TruncateBeforeCopy: document.querySelector('[name="TruncateBeforeCopy"]').checked,
+                IsScheduled: document.querySelector('[name="IsScheduled"]').checked,
+                ScheduleCron: document.querySelector('[name="ScheduleCron"]').value,
+                Enabled: document.querySelector('[name="Enabled"]').checked
+            };
+
+            fetch('/DataCopy/ValidateConfig', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('validationResult');
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle-fill"></i> ' + data.message + '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill"></i> ' + data.message + '</div>';
+                }
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> Validate Configuration';
+            })
+            .catch(err => {
+                document.getElementById('validationResult').innerHTML = '<div class="alert alert-danger">Validation error: ' + err.message + '</div>';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> Validate Configuration';
+            });
+        });
+    </script>
+}

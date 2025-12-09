@@ -1,0 +1,90 @@
+@using NonFactors.Mvc.Grid
+@model IQueryable<DataSync.Core.Models.DataCopy.DataCopyConfiguration>
+@{
+    ViewData["Title"] = "Data Copy Configurations";
+}
+
+<div class="container-fluid">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="bi bi-arrow-left-right"></i> Data Copy Configurations</h3>
+                <div>
+                    <a asp-action="Dashboard" class="btn btn-info btn-sm me-2">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a asp-action="Create" class="btn btn-light btn-sm">
+                        <i class="bi bi-plus-circle"></i> New Configuration
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill"></i> @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i> @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @(Html.Grid(Model)
+                .Build(columns =>
+                {
+                    columns.Add(model => model.Id).Titled("ID").Css("text-center");
+                    columns.Add(model => model.ConfigName).Titled("Configuration");
+                    columns.Add(model => $"{model.SourceDbServerIP}/{model.SourceDbName}.{model.SourceTableName}").Titled("Source").RenderedAs(model =>
+                    {
+                        var source = $"{model.SourceDbServerIP}/{model.SourceDbName}";
+                        var table = model.SourceTableName;
+                        return $"<small>{source}</small><br/><strong>{table}</strong>";
+                    }).Encoded(false);
+                    columns.Add(model => $"{model.DestDbServerIP}/{model.DestDbName}.{model.DestTableName}").Titled("Destination").RenderedAs(model =>
+                    {
+                        var dest = $"{model.DestDbServerIP}/{model.DestDbName}";
+                        var table = model.DestTableName;
+                        return $"<small>{dest}</small><br/><strong>{table}</strong>";
+                    }).Encoded(false);
+                    columns.Add(model => model.BatchSize).Titled("Batch").Css("text-center");
+                    columns.Add(model => model.IsScheduled).Titled("Schedule").RenderedAs(model => 
+                        model.IsScheduled 
+                            ? $"<i class='bi bi-clock-fill text-info' title='{model.ScheduleCron}'></i>" 
+                            : "<i class='bi bi-dash-circle text-secondary'></i>"
+                    ).Encoded(false).Css("text-center");
+                    columns.Add(model => model.Enabled).Titled("Status").RenderedAs(model => 
+                        model.Enabled 
+                            ? "<i class='bi bi-check-circle-fill text-success'></i>" 
+                            : "<i class='bi bi-x-circle-fill text-secondary'></i>"
+                    ).Encoded(false).Css("text-center");
+                    columns.Add(model => model.ModifiedDate).Titled("Modified").RenderedAs(model => 
+                        model.ModifiedDate.ToString("MM/dd HH:mm")
+                    );
+                    columns.Add(model => Html.Raw($"<div class='btn-group btn-group-sm' role='group'><a href='{Url.Action("Edit", "DataCopy", new { id = model.Id })}' class='btn btn-primary' title='Edit'><i class='bi bi-pencil'></i></a><form method='post' action='{Url.Action("TriggerCopy", "DataCopy")}' style='display:inline;'><input type='hidden' name='id' value='{model.Id}' /><button type='submit' class='btn btn-success' title='Run' {(model.Enabled ? "" : "disabled")}><i class='bi bi-play-fill'></i></button></form><a href='{Url.Action("Delete", "DataCopy", new { id = model.Id })}' class='btn btn-danger' onclick='return confirm(\"Delete this configuration?\")' title='Delete'><i class='bi bi-trash'></i></a></div>")).Titled("Actions").Encoded(false).Css("text-center");
+                })
+                .Using(GridFilterMode.Header)
+                .Filterable()
+                .Sortable()
+                .Pageable(pager =>
+                {
+                    pager.PageSizes = new Dictionary<int, string> { { 0, "All" }, { 10, "10" }, { 20, "20" }, { 50, "50" }, { 100, "100" } };
+                    pager.ShowPageSizes = true;
+                    pager.RowsPerPage = 20;
+                })
+                .Empty("No configurations found. Click 'New Configuration' to create one.")
+            )
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll(".mvc-grid").forEach(element => new MvcGrid(element));
+    </script>
+}

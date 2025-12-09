@@ -1,0 +1,159 @@
+@using NonFactors.Mvc.Grid
+@model IQueryable<DataSync.Core.Models.DataCopy.DataCopyJob>
+@{
+    ViewData["Title"] = "Data Copy Dashboard";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4><i class="bi bi-speedometer2"></i> Data Copy Dashboard</h4>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Configurations
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Jobs</h5>
+        </div>
+        <div class="card-body">
+            @(Html.Grid(Model)
+                .Build(columns =>
+                {
+                    columns.Add(model => model.Id).Titled("Job ID").Css("text-center");
+                    columns.Add(model => model.Configuration.ConfigName).Titled("Configuration");
+                    columns.Add(model => model.Status).Titled("Status").RenderedAs(model => 
+                    {
+                        var (iconClass, colorClass) = model.Status.ToString() switch
+                        {
+                            "Completed" => ("bi-check-circle-fill", "text-success"),
+                            "Failed" => ("bi-x-circle-fill", "text-danger"),
+                            "Running" => ("bi-arrow-repeat", "text-primary"),
+                            "Cancelled" => ("bi-dash-circle-fill", "text-warning"),
+                            _ => ("bi-circle", "text-secondary")
+                        };
+                        return $"<i class='bi {iconClass} {colorClass}' title='{model.Status}'></i>";
+                    }).Encoded(false).Css("text-center");
+                    columns.Add(model => model.TriggerType).Titled("Trigger").Css("text-center");
+                    columns.Add(model => $"{model.ProcessedRecords}/{model.TotalRecords}").Titled("Records").Css("text-center").RenderedAs(model =>
+                    {
+                        var failedText = model.FailedRecords > 0 ? $" <span class='text-danger'>({model.FailedRecords} failed)</span>" : "";
+                        return $"{model.ProcessedRecords}/{model.TotalRecords}{failedText}";
+                    }).Encoded(false);
+                    columns.Add(model => model.ProgressPercentage).Titled("Progress").RenderedAs(model =>
+                    {
+                        var progressClass = model.ProgressPercentage >= 100 ? "bg-success" : 
+                                          model.ProgressPercentage > 0 ? "bg-primary" : "bg-secondary";
+                        var animated = model.Status.ToString() == "Running" ? "progress-bar-striped progress-bar-animated" : "";
+                        return $@"<div class='progress' style='height: 20px;'>
+                                    <div class='progress-bar {progressClass} {animated}' 
+                                         role='progressbar' 
+                                         style='width: {model.ProgressPercentage}%'>
+                                        {model.ProgressPercentage:F0}%
+                                    </div>
+                                  </div>";
+                    }).Encoded(false);
+                    columns.Add(model => model.StartTime).Titled("Started").RenderedAs(model => 
+                        model.StartTime.HasValue ? model.StartTime.Value.ToString("MM/dd HH:mm") : "-"
+                    );
+                    columns.Add(model => model.ErrorMessage).Titled("Error").RenderedAs(model =>
+                    {
+                        if (string.IsNullOrEmpty(model.ErrorMessage))
+                            return "-";
+                        
+                        var truncated = model.ErrorMessage.Length > 30 
+                            ? model.ErrorMessage.Substring(0, 30) + "..." 
+                            : model.ErrorMessage;
+                        return $"<span class='text-danger' style='font-size: 0.85em;' title='{System.Web.HttpUtility.HtmlEncode(model.ErrorMessage)}'>{System.Web.HttpUtility.HtmlEncode(truncated)}</span>";
+                    }).Encoded(false);
+                    columns.Add(model => Html.Raw($"<a href='#' onclick='viewJobLogs({model.Id}); return false;' class='btn btn-sm btn-info'><i class='bi bi-file-text'></i></a>")).Titled("Logs").Encoded(false).Css("text-center");
+                })
+                .Using(GridFilterMode.Header)
+                .Filterable()
+                .Sortable()
+                .Pageable(pager =>
+                {
+                    pager.PageSizes = new Dictionary<int, string> { { 0, "All" }, { 10, "10" }, { 20, "20" }, { 50, "50" }, { 100, "100" } };
+                    pager.ShowPageSizes = true;
+                    pager.RowsPerPage = 20;
+                })
+                .Empty("No jobs found.")
+            )
+        </div>
+    </div>
+</div>
+
+<!-- Job Logs Modal -->
+<div class="modal fade" id="logsModal" tabindex="-1" aria-labelledby="logsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="logsModalLabel"><i class="bi bi-file-text"></i> Job Logs</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="logsContent" style="max-height: 400px; overflow-y: auto;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll(".mvc-grid").forEach(element => new MvcGrid(element));
+
+        // Auto-refresh every 10 seconds if there are running jobs
+        // Check status badges in the rendered HTML instead of querying the model
+        const hasRunningJobs = document.querySelectorAll('.badge.bg-primary, .badge.bg-secondary').length > 0;
+        if (hasRunningJobs) {
+            setTimeout(function() {
+                location.reload();
+            }, 10000);
+        }
+
+        function viewJobLogs(jobId) {
+            const modal = new bootstrap.Modal(document.getElementById('logsModal'));
+            const logsContent = document.getElementById('logsContent');
+            
+            logsContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            modal.show();
+
+            fetch('/DataCopy/JobLogs/' + jobId)
+                .then(response => response.json())
+                .then(logs => {
+                    if (logs && logs.length > 0) {
+                        let html = '<div class="list-group">';
+                        logs.forEach(log => {
+                            const levelClass = log.logLevel === 'Error' ? 'danger' : 
+                                              log.logLevel === 'Warning' ? 'warning' : 
+                                              log.logLevel === 'Info' ? 'info' : 'secondary';
+                            const timestamp = new Date(log.logTime).toLocaleString();
+                            html += `<div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1"><span class="badge bg-${levelClass}">${log.logLevel}</span></h6>
+                                            <small class="text-muted">${timestamp}</small>
+                                        </div>
+                                        <p class="mb-1">${log.message}</p>
+                                    </div>`;
+                        });
+                        html += '</div>';
+                        logsContent.innerHTML = html;
+                    } else {
+                        logsContent.innerHTML = '<div class="alert alert-info">No logs found for this job.</div>';
+                    }
+                })
+                .catch(err => {
+                    logsContent.innerHTML = '<div class="alert alert-danger">Error loading logs: ' + err.message + '</div>';
+                });
+        }
+    </script>
+}
