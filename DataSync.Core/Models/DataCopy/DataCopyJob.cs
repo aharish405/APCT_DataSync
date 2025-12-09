@@ -1,5 +1,7 @@
 using System;
 
+using System;
+
 namespace DataSync.Core.Models.DataCopy
 {
     public class DataCopyJob
@@ -25,7 +27,12 @@ namespace DataSync.Core.Models.DataCopy
         // Error Handling
         public string ErrorMessage { get; set; }
         
-        public DateTime CreatedDate { get; set; }
+        // Checkpoint and Recovery fields
+        public int LastSuccessfulOffset { get; set; }
+        public bool CanResume { get; set; }
+        public int RetryCount { get; set; }
+        
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
         
         // Navigation property
         public DataCopyConfiguration Configuration { get; set; }

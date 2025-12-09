@@ -16,17 +16,20 @@ namespace DataSync.Web.Controllers
         private readonly IDataCopyJobRepository _jobRepo;
         private readonly IDataCopyService _copyService;
         private readonly DataSyncDbContext _dbContext;
+        private readonly IConfiguration _configuration;
 
         public DataCopyController(
             IDataCopyConfigRepository configRepo,
             IDataCopyJobRepository jobRepo,
             IDataCopyService copyService,
-            DataSyncDbContext dbContext)
+            DataSyncDbContext dbContext,
+            IConfiguration configuration)
         {
             _configRepo = configRepo;
             _jobRepo = jobRepo;
             _copyService = copyService;
             _dbContext = dbContext;
+            _configuration = configuration;
         }
 
         // GET: DataCopy
@@ -124,8 +127,45 @@ namespace DataSync.Web.Controllers
         {
             if (config == null) return BadRequest("Invalid configuration.");
 
-            var result = await _configRepo.ValidateConfigurationAsync(config);
-            return Ok(new { success = result.Success, message = result.Message });
+            try
+            {
+                // Basic field validation first
+                var basicValidation = await _configRepo.ValidateConfigurationAsync(config);
+                if (!basicValidation.Success)
+                    return Ok(new { success = false, message = basicValidation.Message });
+
+                // Build connection strings using helper
+                var connHelper = new DataSync.Data.Helpers.ConnectionStringHelper(_configuration);
+                var sourceConnString = connHelper.BuildConnectionString(config.SourceDbServerIP, config.SourceDbName);
+                var destConnString = connHelper.BuildConnectionString(config.DestDbServerIP, config.DestDbName);
+
+                // Create execution repository for testing
+                var execRepo = new DataSync.Data.Repositories.DataCopyExecutionRepository();
+
+                // Test source connection
+                var sourceTest = await execRepo.TestConnectionAsync(sourceConnString);
+                if (!sourceTest.Success)
+                    return Ok(new { success = false, message = $"Cannot connect to source database: {sourceTest.ErrorMessage}. Check server IP, database name, and credentials in appsettings.json." });
+
+                // Test destination connection
+                var destTest = await execRepo.TestConnectionAsync(destConnString);
+                if (!destTest.Success)
+                    return Ok(new { success = false, message = $"Cannot connect to destination database: {destTest.ErrorMessage}. Check server IP, database name, and credentials in appsettings.json." });
+
+                // Verify source table exists
+                if (!await execRepo.TableExistsAsync(sourceConnString, config.SourceTableName))
+                    return Ok(new { success = false, message = $"Source table '{config.SourceTableName}' does not exist." });
+
+                // Verify destination table exists
+                if (!await execRepo.TableExistsAsync(destConnString, config.DestTableName))
+                    return Ok(new { success = false, message = $"Destination table '{config.DestTableName}' does not exist." });
+
+                return Ok(new { success = true, message = "Configuration is valid and ready to use." });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { success = false, message = $"Validation error: {ex.Message}" });
+            }
         }
 
         // GET: DataCopy/Dashboard
@@ -200,6 +240,22 @@ namespace DataSync.Web.Controllers
         {
             var logs = await _jobRepo.GetJobLogsAsync(id);
             return Json(logs);
+        }
+
+        // POST: DataCopy/ResumeJob
+        [HttpPost]
+        public async Task<IActionResult> ResumeJob(int id)
+        {
+            var result = await _copyService.ResumeJobAsync(id);
+            if (result.Success)
+            {
+                TempData["SuccessMessage"] = result.Message;
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
+            return RedirectToAction("Dashboard");
         }
     }
 }

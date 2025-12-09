@@ -53,6 +53,16 @@ namespace DataSync.Core.Models.DataCopy
         [Display(Name = "Enabled")]
         public bool Enabled { get; set; } = true;
 
+        // Recovery and Retry Configuration
+        [Display(Name = "Max Retry Attempts")]
+        public int MaxRetryAttempts { get; set; } = 3;
+
+        [Display(Name = "Use Transaction (All or Nothing)")]
+        public bool UseTransaction { get; set; } = false;
+
+        [Display(Name = "Retry Failed Records Individually")]
+        public bool RetryFailedRecords { get; set; } = true;
+
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime ModifiedDate { get; set; } = DateTime.Now;
     }

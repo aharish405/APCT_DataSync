@@ -9,5 +9,6 @@ namespace DataSync.Core.Interfaces
         Task<DataCopyJob> GetJobStatusAsync(int jobId);
         Task<(bool Success, string Message)> ValidateConfigurationAsync(int configId);
         Task CancelJobAsync(int jobId);
+        Task<(bool Success, string Message)> ResumeJobAsync(int jobId);
     }
 }

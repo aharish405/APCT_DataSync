@@ -66,7 +66,16 @@
                             : model.ErrorMessage;
                         return $"<span class='text-danger' style='font-size: 0.85em;' title='{System.Web.HttpUtility.HtmlEncode(model.ErrorMessage)}'>{System.Web.HttpUtility.HtmlEncode(truncated)}</span>";
                     }).Encoded(false);
-                    columns.Add(model => Html.Raw($"<a href='#' onclick='viewJobLogs({model.Id}); return false;' class='btn btn-sm btn-info'><i class='bi bi-file-text'></i></a>")).Titled("Logs").Encoded(false).Css("text-center");
+                    columns.Add(model => model.Id).Titled("Actions").RenderedAs(model =>
+                    {
+                        var logsBtn = $"<a href='#' onclick='viewJobLogs({model.Id}); return false;' class='btn btn-sm btn-info' title='View Logs'><i class='bi bi-file-text'></i></a>";
+                        var resumeBtn = "";
+                        if (model.Status.ToString() == "Failed" && model.CanResume)
+                        {
+                            resumeBtn = $" <form method='post' action='/DataCopy/ResumeJob' style='display:inline;'><input type='hidden' name='id' value='{model.Id}' /><button type='submit' class='btn btn-sm btn-warning' title='Resume from checkpoint (Retry #{model.RetryCount + 1})' onclick='return confirm(\"Resume this job from offset {model.LastSuccessfulOffset}?\")'><i class='bi bi-arrow-clockwise'></i></button></form>";
+                        }
+                        return logsBtn + resumeBtn;
+                    }).Encoded(false).Css("text-center");
                 })
                 .Using(GridFilterMode.Header)
                 .Filterable()
