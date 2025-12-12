@@ -10,6 +10,7 @@ namespace DataSync.Core.Interfaces
         Task<ExportConfiguration> GetConfigurationByIdAsync(int id);
         Task<ExportConfiguration> GetConfigurationAsync(string appName, string dbName, string tableName);
         Task<IEnumerable<ConfigDetailsResponse>> GetAllExportTablesAsync();
+        Task<IEnumerable<ConfigDetailsResponse>> GetAllExportTablesByAppIdAsync(string appId);
         Task<PagedResult<ExportConfiguration>> GetAllConfigurationsAsync(int pageNumber, int pageSize, string appName = null);
         Task<int> AddConfigurationAsync(ExportConfiguration config);
         Task UpdateConfigurationAsync(ExportConfiguration config);

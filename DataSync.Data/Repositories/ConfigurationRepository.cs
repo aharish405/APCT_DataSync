@@ -53,6 +53,15 @@ namespace DataSync.Data.Repositories
             }
         }
 
+        public async Task<IEnumerable<ConfigDetailsResponse>> GetAllExportTablesByAppIdAsync(string appId)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var sql = "SELECT AppId, AppName, DbName, TableName FROM DataSync_ExportConfigurations WHERE AppId = @AppId";
+                return await connection.QueryAsync<ConfigDetailsResponse>(sql, new { AppId = appId });
+            }
+        }
+
         public async Task<PagedResult<ExportConfiguration>> GetAllConfigurationsAsync(int pageNumber, int pageSize, string appName = null)
         {
             using (var connection = new SqlConnection(_connectionString))

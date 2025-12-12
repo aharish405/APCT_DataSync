@@ -78,20 +78,31 @@ namespace DataSync.Tests.Controllers
             _mockRepo.Verify(r => r.AddConfigurationAsync(config), Times.Once);
         }
 
+
         [Fact]
         public async Task GetExportTables_ShouldReturnOk_WithList()
         {
             // Arrange
-            var tables = new List<ConfigDetailsResponse> { new ConfigDetailsResponse { AppName = "App1" } };
-            _mockRepo.Setup(r => r.GetAllExportTablesAsync()).ReturnsAsync(tables);
+            var tables = new List<ConfigDetailsResponse> { new ConfigDetailsResponse { AppName = "App1", AppId = "app-001" } };
+            _mockRepo.Setup(r => r.GetAllExportTablesByAppIdAsync("app-001")).ReturnsAsync(tables);
 
             // Act
-            var result = await _controller.GetExportTables();
+            var result = await _controller.GetExportTables("app-001");
 
             // Assert
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
             okResult.Value.Should().BeEquivalentTo(tables);
 
+        }
+
+        [Fact]
+        public async Task GetExportTables_ShouldReturnBadRequest_WhenAppIdIsEmpty()
+        {
+            // Act
+            var result = await _controller.GetExportTables("");
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
         }
 
         [Fact]

@@ -51,7 +51,7 @@ namespace DataSync.Tests.Integration
             var client = _factory.CreateClient();
 
             // Act
-            var response = await client.GetAsync("/api/getexporttables");
+            var response = await client.GetAsync("/api/getexporttables?appId=app-001");
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);

@@ -193,9 +193,14 @@ namespace DataSync.Web.Controllers
 
         [HttpGet("~/api/getexporttables")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetExportTables()
+        public async Task<IActionResult> GetExportTables([FromQuery] string appId)
         {
-            var tables = await _configRepo.GetAllExportTablesAsync();
+            if (string.IsNullOrWhiteSpace(appId))
+            {
+                return BadRequest(new { success = false, message = "AppId is required" });
+            }
+
+            var tables = await _configRepo.GetAllExportTablesByAppIdAsync(appId);
             return Ok(tables);
         }
         private List<string> ParseCsvLine(string line)
